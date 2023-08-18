@@ -55,6 +55,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(AppState { db: pool.clone() }))
             .configure(rutas::login::config)
+            .configure(rutas::empleados::config)
             .wrap_fn(|re, rec| {
                 re.extensions_mut()
                     .insert(FixedOffset::east_opt(-5 * 3600).unwrap());

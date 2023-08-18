@@ -30,6 +30,8 @@ CREATE TABLE `Contrato` (
   `convocatoria` int,
   `convocatoria_s` varchar(255),
   `area` int not null,
+  `funcion` int not null,
+  `activo` enum('Y','N'),
   `cargo` int not null,
   `regimen` int not null
 );
@@ -115,7 +117,7 @@ CREATE TABLE `Postulantes` (
 
 ALTER TABLE `Contrato` ADD FOREIGN KEY (`dni`) REFERENCES `Datos_Generales` (`dni`);
 
-ALTER TABLE `Contrato` ADD FOREIGN KEY (`id`) REFERENCES `Funciones_Contratos` (`id`);
+ALTER TABLE `Contrato` ADD FOREIGN KEY (`funcion`) REFERENCES `Funciones_Contratos` (`id`);
 
 ALTER TABLE `Contrato` ADD FOREIGN KEY (`regimen`) REFERENCES `Regimen` (`id`);
 

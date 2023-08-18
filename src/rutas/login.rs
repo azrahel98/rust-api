@@ -29,7 +29,8 @@ pub async fn login(data: web::Data<AppState>, body: web::Json<Value>) -> impl Re
     if body.get("nickname").is_none() || body.get("password").is_none() {
         return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
             ResponseBody {
-                message: "parametros incorrectos".to_string()
+                message: "parametros incorrectos".to_string(),
+                code: Some("3".to_string())
             }
         )));
     }
@@ -47,7 +48,8 @@ pub async fn login(data: web::Data<AppState>, body: web::Json<Value>) -> impl Re
             if us.password != body["password"].as_str().unwrap() {
                 return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
                     ResponseBody {
-                        message: "contraseña incorrecta".to_string()
+                        message: "contraseña incorrecta".to_string(),
+                        code: Some("2".to_string())
                     }
                 )));
             }
@@ -64,7 +66,8 @@ pub async fn login(data: web::Data<AppState>, body: web::Json<Value>) -> impl Re
         Err(_) => {
             return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
                 ResponseBody {
-                    message: "usuario no encontrado".to_string()
+                    message: "usuario no encontrado".to_string(),
+                    code: Some("1".to_string())
                 }
             )));
         }

@@ -87,6 +87,7 @@ where
                         let res = HttpResponse::Unauthorized()
                             .json(ResponseBody {
                                 message: "token invalido".to_string(),
+                                code: None,
                             })
                             .map_into_right_body();
 
@@ -99,6 +100,7 @@ where
                 let res = HttpResponse::Unauthorized()
                     .json(ResponseBody {
                         message: "n".to_string(),
+                        code: None,
                     })
                     .map_into_right_body();
 
@@ -111,4 +113,5 @@ where
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseBody {
     pub message: String,
+    pub code: Option<String>,
 }
