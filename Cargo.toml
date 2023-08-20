@@ -21,6 +21,7 @@ sqlx = { version = "0.7.1", features = [
     "runtime-async-std-native-tls",
     "mysql",
     "chrono",
+    "bigdecimal",
     "uuid",
 ] }
 uuid = { version = "1.2.2", features = ["serde", "v4"] }

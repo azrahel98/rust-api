@@ -15,6 +15,7 @@ pub struct Usuario {
 #[allow(non_snake_case)]
 pub struct TrabajadoresVw {
     pub dni: String,
+    pub sexo: sqlx::types::JsonValue,
     pub nombre: String,
     pub contratos: i64,
     pub activos: Option<i32>,

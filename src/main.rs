@@ -2,7 +2,7 @@ use actix_cors::Cors;
 use actix_service::Service;
 use actix_web::middleware::Logger;
 use actix_web::HttpMessage;
-use actix_web::{http::header, web, App, HttpServer};
+use actix_web::{web, App, HttpServer};
 use chrono::FixedOffset;
 use dotenv::dotenv;
 use sqlx::mysql::MySqlPoolOptions;
@@ -44,18 +44,15 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let cors = Cors::default()
-            .allowed_origin("http://localhost")
-            .allowed_methods(vec!["GET", "POST", "PATCH", "DELETE"])
-            .allowed_headers(vec![
-                header::CONTENT_TYPE,
-                header::AUTHORIZATION,
-                header::ACCEPT,
-            ])
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
             .supports_credentials();
         App::new()
             .app_data(web::Data::new(AppState { db: pool.clone() }))
             .configure(rutas::login::config)
             .configure(rutas::empleados::config)
+            .configure(rutas::documentos::config)
             .wrap_fn(|re, rec| {
                 re.extensions_mut()
                     .insert(FixedOffset::east_opt(-5 * 3600).unwrap());
