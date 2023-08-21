@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     middleware::{self, sa::ResponseBody},
-    modelos::docs::{DocsDate, DocsRange},
+    modelos::docs::{Asistencia, DocsDate, DocsRange},
     AppState,
 };
 
@@ -100,10 +100,33 @@ pub async fn buscar_trabajadores(
     .await
     .unwrap();
 
+    let asistencia = sqlx::query_as!(
+        Asistencia,
+        r#"
+        SELECT
+        a.dni,
+        a.fecha,
+        CAST(CONVERT(AES_DECRYPT(a.tardanza, ?) USING utf8) AS SIGNED) AS tardanza,
+        CAST(CONVERT(AES_DECRYPT(a.falta, ?) USING utf8) AS SIGNED) AS falta
+        FROM
+            asistencia a
+            INNER JOIN datos_generales dg ON a.dni = dg.dni
+        Where a.dni = ? and month(a.fecha) = ? and year(a.fecha) = ?
+        "#,
+        std::env::var("AES").unwrap(),
+        std::env::var("AES").unwrap(),
+        body.get("dni").unwrap().as_str(),
+        body.get("mes").unwrap(),
+        body.get("year").unwrap(),
+    )
+    .fetch_all(&data.db)
+    .await
+    .unwrap();
+
     let json_response = serde_json::json!({
         "results": ranges.len(),
         "documentos": {
-            "registros":[],
+            "registros":asistencia,
             "doc":docs,
             "ranges":ranges
         }

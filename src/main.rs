@@ -53,6 +53,7 @@ async fn main() -> std::io::Result<()> {
             .configure(rutas::login::config)
             .configure(rutas::empleados::config)
             .configure(rutas::documentos::config)
+            .configure(rutas::asistencia::config)
             .wrap_fn(|re, rec| {
                 re.extensions_mut()
                     .insert(FixedOffset::east_opt(-5 * 3600).unwrap());
