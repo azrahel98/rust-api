@@ -39,7 +39,16 @@ pub async fn buscar_asistencia(
 
     let asistencia = sqlx::query_as!(
         RegistrosReloj,
-        r#"select * from asistevw where dni = ? and month(fecha) = ? and year(fecha) = ?
+        r#"SELECT
+            dni,
+            fecha,
+            CAST( AES_DECRYPT( tardanza, 'olaf241' ) AS FLOAT ) tardanza,
+            CAST( AES_DECRYPT( falta, 'olaf241' ) AS FLOAT ) falta 
+        FROM
+            asistencia
+        WHERE
+            dni = ? and year(fecha) = ? and month(fecha) = ? 
+        order by fecha desc
         "#,
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),

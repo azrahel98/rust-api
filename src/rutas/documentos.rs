@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     middleware::{self, sa::ResponseBody},
-    modelos::docs::{Asistencia, DocsDate, DocsRange},
+    modelos::docs::{DocsDate, DocsRange, Reloj},
     AppState,
 };
 
@@ -101,20 +101,8 @@ pub async fn buscar_trabajadores(
     .unwrap();
 
     let asistencia = sqlx::query_as!(
-        Asistencia,
-        r#"
-        SELECT
-        a.dni,
-        a.fecha,
-        CAST(CONVERT(AES_DECRYPT(a.tardanza, ?) USING utf8) AS SIGNED) AS tardanza,
-        CAST(CONVERT(AES_DECRYPT(a.falta, ?) USING utf8) AS SIGNED) AS falta
-        FROM
-            asistencia a
-            INNER JOIN datos_generales dg ON a.dni = dg.dni
-        Where a.dni = ? and month(a.fecha) = ? and year(a.fecha) = ?
-        "#,
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
+        Reloj,
+        "select * from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),
         body.get("year").unwrap(),
