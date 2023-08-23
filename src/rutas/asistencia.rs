@@ -42,8 +42,8 @@ pub async fn buscar_asistencia(
         r#"SELECT
             dni,
             fecha,
-            CAST( AES_DECRYPT( tardanza, 'olaf241' ) AS FLOAT ) tardanza,
-            CAST( AES_DECRYPT( falta, 'olaf241' ) AS FLOAT ) falta 
+            CONVERT( AES_DECRYPT( tardanza, ? ),SIGNED) tardanza,
+            CONVERT( AES_DECRYPT( falta, ? ),SIGNED) falta 
         FROM
             asistencia
         WHERE

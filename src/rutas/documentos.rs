@@ -102,7 +102,7 @@ pub async fn buscar_trabajadores(
 
     let asistencia = sqlx::query_as!(
         Reloj,
-        "select * from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
+        "select dni,CAST(entrada as time) entrada,CAST(entrada2 as time) entrada2,CAST(salida as time) salida,CAST(tardanza as time) tardanza,fecha from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),
         body.get("year").unwrap(),

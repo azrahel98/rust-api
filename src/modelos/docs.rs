@@ -45,6 +45,6 @@ pub struct Reloj {
 pub struct RegistrosReloj {
     pub dni: Option<String>,
     pub fecha: Option<sqlx::types::chrono::NaiveDate>,
-    pub tardanza: Option<f32>,
-    pub falta: Option<f32>,
+    pub tardanza: Option<i64>,
+    pub falta: Option<i64>,
 }

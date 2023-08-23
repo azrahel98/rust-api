@@ -23,7 +23,7 @@ pub struct ContratosInfo {
     pub dni: String,
     pub activo: sqlx::types::JsonValue,
     pub numero: Option<String>,
-    pub sueldo: Option<f32>,
+    pub sueldo: Option<i64>,
     pub ingreso: Option<sqlx::types::chrono::NaiveDate>,
     pub convocatoria: Option<i32>,
     pub convocatoria_s: Option<String>,

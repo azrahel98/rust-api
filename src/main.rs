@@ -25,13 +25,15 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
     let pool = match MySqlPoolOptions::new()
-        .max_connections(30)
+        .max_connections(10)
         .connect(&database_url)
+        // .connect_with(opts)
         .await
     {
         Ok(pool) => {
-            println!("✅Connection to the database is successful!");
+            println!("✅Connection to the database is successful!!");
             pool
         }
         Err(err) => {
