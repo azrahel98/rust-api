@@ -2,7 +2,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use serde_json::Value;
 
 use crate::{
-    middleware::{self, sa::ResponseBody},
+    middleware::{self, key::KEY, sa::ResponseBody},
     modelos, AppState,
 };
 
@@ -10,7 +10,9 @@ use modelos::model::Usuario;
 
 #[get("/", wrap = "middleware::sa::JWT")]
 pub async fn note_list_handler(data: web::Data<AppState>) -> impl Responder {
-    let notes: Vec<Usuario> = sqlx::query_as!(Usuario, "select * from usuario")
+    let notes: Vec<Usuario> = sqlx::query_as!(Usuario, "select id,CAST(AES_DECRYPT(nickname,?) as CHAR) nickname,CAST(AES_DECRYPT(password,?) AS CHAR) password,CAST(AES_DECRYPT(nombre,?) AS CHAR) nombre, created_at from usuario", KEY,
+  KEY,
+    KEY)
         .fetch_all(&data.db)
         .await
         .unwrap();
@@ -35,9 +37,15 @@ pub async fn login(data: web::Data<AppState>, body: web::Json<Value>) -> impl Re
         )));
     }
 
+    println!("{}", KEY);
+
     let usuario = sqlx::query_as!(
         Usuario,
-        "select * from usuario where nickname = ?",
+        "select id,CAST(AES_DECRYPT(nickname,?) as CHAR) nickname,CAST(AES_DECRYPT(password,?) AS CHAR) password,CAST(AES_DECRYPT(nombre,?) AS CHAR) nombre, created_at from usuario where CAST(AES_DECRYPT(nickname,?) as CHAR) = ?",
+        KEY,
+        KEY,
+        KEY,
+        KEY,
         body.get("nickname").unwrap().as_str()
     )
     .fetch_one(&data.db)
@@ -45,7 +53,7 @@ pub async fn login(data: web::Data<AppState>, body: web::Json<Value>) -> impl Re
 
     match usuario {
         Ok(us) => {
-            if us.password != body["password"].as_str().unwrap() {
+            if us.password != Some(body["password"].as_str().unwrap().to_string()) {
                 return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
                     ResponseBody {
                         message: "contraseña incorrecta".to_string(),

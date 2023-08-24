@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 #[allow(non_snake_case)]
 pub struct Usuario {
     pub id: i32,
-    pub nickname: String,
-    pub nombre: String,
-    pub password: String,
+    pub nickname: Option<String>,
+    pub nombre: Option<String>,
+    pub password: Option<String>,
     pub created_at: sqlx::types::chrono::DateTime<Local>,
 }
 

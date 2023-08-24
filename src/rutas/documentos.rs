@@ -6,7 +6,7 @@ use actix_web::{
 use serde_json::Value;
 
 use crate::{
-    middleware::{self, sa::ResponseBody},
+    middleware::{self, key::KEY, sa::ResponseBody},
     modelos::docs::{DocsDate, DocsRange, Reloj},
     AppState,
 };
@@ -55,9 +55,9 @@ pub async fn buscar_trabajadores(
                 AND YEAR ( fecha ) = ? 
                 AND active = 'Y'
         "#,
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
+        KEY,
+        KEY,
+        KEY,
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),
         body.get("year").unwrap()
@@ -85,9 +85,9 @@ pub async fn buscar_trabajadores(
             AND dni = ? 
             AND active = 'Y'
         "#,
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
+        KEY,
+        KEY,
+        KEY,
         format!(
             "{}-{}-01",
             body.get("year").unwrap(),

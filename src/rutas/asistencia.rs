@@ -50,6 +50,8 @@ pub async fn buscar_asistencia(
             dni = ? and year(fecha) = ? and month(fecha) = ? 
         order by fecha desc
         "#,
+        std::env::var("AES").unwrap(),
+        std::env::var("AES").unwrap(),
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),
         body.get("year").unwrap()

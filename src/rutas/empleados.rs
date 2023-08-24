@@ -6,7 +6,7 @@ use actix_web::{
 use serde_json::Value;
 
 use crate::{
-    middleware::{self, sa::ResponseBody},
+    middleware::{self, key::KEY, sa::ResponseBody},
     modelos::{
         model::TrabajadoresVw,
         trabajador::{ContratosInfo, TrabajadorBasic, TrabajadorInfo},
@@ -70,9 +70,9 @@ async fn buscar_by_dni(data: web::Data<AppState>, path: web::Path<String>) -> im
     let employ = sqlx::query_as!(
         TrabajadorInfo,
         "select dni,nombre,sexo,nacimiento,discapacitado,fotosheck,cussp,	CAST(aes_decrypt( direccion, ? ) AS CHAR) direccion,CAST(aes_decrypt( telf, ? ) AS CHAR) telf,CAST(aes_decrypt( email, ? ) AS CHAR) email  from datos_generales where dni = ?",
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
-        std::env::var("AES").unwrap(),
+        KEY,
+        KEY,
+        KEY,
         path.as_str()
     )
     .fetch_one(&data.db)
