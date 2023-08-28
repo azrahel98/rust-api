@@ -29,7 +29,6 @@ async fn main() -> std::io::Result<()> {
     let pool = match MySqlPoolOptions::new()
         .max_connections(10)
         .connect(&database_url)
-        // .connect_with(opts)
         .await
     {
         Ok(pool) => {

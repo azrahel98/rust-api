@@ -48,3 +48,20 @@ pub struct RegistrosReloj {
     pub tardanza: Option<i64>,
     pub falta: Option<i64>,
 }
+
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[allow(non_snake_case)]
+// view
+pub struct DocSql {
+    pub nombre: Option<String>,
+    pub docid: Option<i32>,
+    pub fecha: Option<sqlx::types::chrono::NaiveDate>,
+    pub tipo: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[allow(non_snake_case)]
+// view
+pub struct DocId {
+    pub docid: Option<i32>,
+}
