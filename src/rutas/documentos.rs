@@ -100,7 +100,6 @@ pub async fn buscar_trabajadores(
     .fetch_all(&data.db)
     .await
     .unwrap();
-
     let asistencia = sqlx::query_as!(
         Reloj,
         "select dni,CAST(entrada as time) entrada,CAST(entrada2 as time) entrada2,CAST(salida as time) salida,CAST(tardanza as time) tardanza,fecha from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
@@ -138,6 +137,7 @@ pub async fn add_doc(data: web::Data<AppState>, body: web::Json<Value>) -> impl 
     if !body.get("nombre").unwrap().is_string()
         || !body.get("fecha").unwrap().is_string()
         || !body.get("tipo").unwrap().is_number()
+        || !body.get("user").unwrap().is_number()
     {
         return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
             ResponseBody {
@@ -158,14 +158,16 @@ pub async fn add_doc(data: web::Data<AppState>, body: web::Json<Value>) -> impl 
         )));
     }
 
-    let query_insert =
-        sqlx::query(r#"insert into documentos(fecha,nombre,tipo) values(?,AES_ENCRYPT(?,?),?)"#)
-            .bind(body.get("fecha").unwrap().as_str().unwrap())
-            .bind(body.get("nombre").unwrap().as_str().unwrap())
-            .bind(KEY)
-            .bind(body.get("tipo").unwrap().as_i64().unwrap())
-            .execute(&data.db)
-            .await;
+    let query_insert = sqlx::query(
+        r#"insert into documentos(fecha,nombre,tipo,create_by) values(?,AES_ENCRYPT(?,?),?,?)"#,
+    )
+    .bind(body.get("fecha").unwrap().as_str().unwrap())
+    .bind(body.get("nombre").unwrap().as_str().unwrap())
+    .bind(KEY)
+    .bind(body.get("tipo").unwrap().as_i64().unwrap())
+    .bind(body.get("user").unwrap().as_i64().unwrap())
+    .execute(&data.db)
+    .await;
 
     match query_insert {
         Ok(ec) => Ok(HttpResponse::Ok().json(ec.last_insert_id())),
@@ -239,7 +241,10 @@ pub async fn add_detalle(data: web::Data<AppState>, body: web::Json<Value>) -> i
         )));
     }
 
-    if !body.get("doc").unwrap().is_i64() || !body.get("asunto").unwrap().is_string() {
+    if !body.get("doc").unwrap().is_i64()
+        || !body.get("asunto").unwrap().is_string()
+        || !body.get("user").unwrap().is_i64()
+    {
         return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
             ResponseBody {
                 message: "parametros f".to_string(),
@@ -249,7 +254,7 @@ pub async fn add_detalle(data: web::Data<AppState>, body: web::Json<Value>) -> i
     }
 
     let query = format!(
-        "INSERT INTO detalledoc (doc,dni,fecha,asunto,referencia,descripcion,inicio,fin) VALUES
+        "INSERT INTO detalledoc (doc,dni,fecha,asunto,referencia,descripcion,inicio,fin,create_by) VALUES
     (
         {},
         '{}',
@@ -257,6 +262,7 @@ pub async fn add_detalle(data: web::Data<AppState>, body: web::Json<Value>) -> i
         AES_ENCRYPT('{}','{}'),
         AES_ENCRYPT({},'{}'),
         AES_ENCRYPT('{}','{}'),
+        {},
         {},
         {}
     )",
@@ -270,7 +276,8 @@ pub async fn add_detalle(data: web::Data<AppState>, body: web::Json<Value>) -> i
         body.get("descripcion").unwrap().as_str().unwrap(),
         KEY,
         body.get("inicio").unwrap_or(&Value::Null),
-        body.get("fin").unwrap_or(&Value::Null)
+        body.get("fin").unwrap_or(&Value::Null),
+        body.get("user").unwrap().as_i64().unwrap(),
     );
 
     println!("{}", query);
@@ -363,11 +370,64 @@ pub async fn buscar_doc(data: web::Data<AppState>, body: web::Json<Value>) -> im
     }
 }
 
+#[post("/delete", wrap = "middleware::sa::JWT")]
+pub async fn delete_doc(data: web::Data<AppState>, body: web::Json<Value>) -> impl Responder {
+    if body.get("id").is_none() {
+        return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+            ResponseBody {
+                message: "parametros incorrectos".to_string(),
+                code: Some("3".to_string())
+            }
+        )));
+    }
+
+    if !body.get("id").unwrap().is_number() {
+        return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+            ResponseBody {
+                message: "parametros f".to_string(),
+                code: Some("3".to_string())
+            }
+        )));
+    }
+
+    let query_insert = sqlx::query(r#"delete from detalledoc where id = ?"#)
+        .bind(body.get("id").unwrap().as_i64().unwrap())
+        .execute(&data.db)
+        .await;
+
+    match query_insert {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+                    ResponseBody {
+                        message: "no hay datos".to_string(),
+                        code: Some("2".to_string())
+                    }
+                )));
+            } else {
+                Ok(HttpResponse::Ok().json(serde_json::json!({
+                    "status": "deleted"
+                })))
+            }
+        }
+        Err(_e) => {
+            return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+                ResponseBody {
+                    message: "error desconocido".to_string(),
+                    code: Some("2".to_string())
+                }
+            )));
+        }
+    }
+    // Ok(HttpResponse::Ok().json(2))
+}
+
 pub fn config(conf: &mut web::ServiceConfig) {
     let scope = web::scope("/doc")
         .service(buscar_trabajadores)
         .service(add_detalle)
         .service(buscar_doc)
+        .service(delete_doc)
         .service(add_doc);
 
     conf.service(scope);
