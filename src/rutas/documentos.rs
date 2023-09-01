@@ -41,21 +41,22 @@ pub async fn buscar_trabajadores(
     let docs = sqlx::query_as!(
         DocsDate,
         r#"SELECT
-                dni,
-                doc as doc,
-                id ,
-                fecha,
-                CAST(AES_DECRYPT(asunto,?) as CHAR) asunto,
-                CAST(AES_DECRYPT(descripcion,?) as CHAR) descripcion,
-                CAST(AES_DECRYPT(referencia,?) as CHAR) referencia
-            FROM
-                detalledoc 
-            WHERE
-                dni = ? 
-                AND MONTH ( fecha ) = ? 
-                AND YEAR ( fecha ) = ? 
-                AND active = 'Y'
+        d.dni,
+        d.doc as doc,
+       CAST(AES_DECRYPT(dc.nombre, ?) as CHAR) nombre,
+        d.id,
+        d.fecha,
+        CAST(AES_DECRYPT(d.asunto, ?) as CHAR) asunto,
+        CAST(AES_DECRYPT(d.descripcion, ?) as CHAR) descripcion,
+        CAST(AES_DECRYPT(d.referencia, ?) as CHAR) referencia
+      FROM
+        detalledoc d inner join documentos dc on d.doc = dc.docid where
+                d.dni = ? 
+                AND MONTH ( d.fecha ) = ? 
+                AND YEAR ( d.fecha ) = ? 
+                AND d.active = 'Y'
         "#,
+        KEY,
         KEY,
         KEY,
         KEY,
@@ -70,22 +71,24 @@ pub async fn buscar_trabajadores(
     let ranges = sqlx::query_as!(
         DocsRange,
         r#"SELECT
-            dni,
-            doc,
-            id,
-            inicio,
-            fin,
-            CAST( AES_DECRYPT( asunto,?) AS CHAR ) asunto,
-            CAST( AES_DECRYPT( descripcion,?) AS CHAR ) descripcion,
-            CAST( AES_DECRYPT( referencia,?) AS CHAR ) referencia 
+            d.dni,
+            d.doc,
+            CAST(AES_DECRYPT(dc.nombre, ?) as CHAR) nombre,
+            d.id,
+            d.inicio,
+            d.fin,
+            CAST( AES_DECRYPT( d.asunto,?) AS CHAR ) asunto,
+            CAST( AES_DECRYPT( d.descripcion,?) AS CHAR ) descripcion,
+            CAST( AES_DECRYPT( d.referencia,?) AS CHAR ) referencia 
         FROM
-            detalledoc 
+            detalledoc d inner join documentos dc on d.doc = dc.docid
         WHERE
-            fin >= ? 
-            AND YEAR ( fin ) = ? 
-            AND dni = ? 
-            AND active = 'Y'
+            d.fin >= ? 
+            AND YEAR ( d.fin ) = ? 
+            AND d.dni = ? 
+            AND d.active = 'Y'
         "#,
+        KEY,
         KEY,
         KEY,
         KEY,
@@ -422,12 +425,76 @@ pub async fn delete_doc(data: web::Data<AppState>, body: web::Json<Value>) -> im
     // Ok(HttpResponse::Ok().json(2))
 }
 
+#[post("/anulardoc", wrap = "middleware::sa::JWT")]
+pub async fn anular_doc(data: web::Data<AppState>, body: web::Json<Value>) -> impl Responder {
+    if body.get("id").is_none() && body.get("valor").is_none() {
+        return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+            ResponseBody {
+                message: "parametros incorrectos".to_string(),
+                code: Some("3".to_string())
+            }
+        )));
+    }
+
+    if !body.get("id").unwrap().is_number() {
+        return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+            ResponseBody {
+                message: "parametros f".to_string(),
+                code: Some("3".to_string())
+            }
+        )));
+    }
+
+    let activo = if body.get("valor").unwrap().is_boolean() {
+        'N'
+    } else {
+        'Y'
+    };
+
+    let querystring = format!(
+        "update detalledoc set active = '{}' where id = {}",
+        activo,
+        body.get("id").unwrap().as_i64().unwrap()
+    );
+
+    println!("{}", querystring);
+
+    let query_insert = sqlx::query(&querystring).execute(&data.db).await;
+
+    match query_insert {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+                    ResponseBody {
+                        message: "no hay datos".to_string(),
+                        code: Some("2".to_string())
+                    }
+                )));
+            } else {
+                Ok(HttpResponse::Ok().json(serde_json::json!({
+                    "status": "UPDATED"
+                })))
+            }
+        }
+        Err(_e) => {
+            return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
+                ResponseBody {
+                    message: "error desconocido".to_string(),
+                    code: Some("2".to_string())
+                }
+            )));
+        }
+    }
+    // Ok(HttpResponse::Ok().json(2))
+}
+
 pub fn config(conf: &mut web::ServiceConfig) {
     let scope = web::scope("/doc")
         .service(buscar_trabajadores)
         .service(add_detalle)
         .service(buscar_doc)
         .service(delete_doc)
+        .service(anular_doc)
         .service(add_doc);
 
     conf.service(scope);

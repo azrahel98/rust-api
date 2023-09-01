@@ -1,3 +1,5 @@
+use std::string;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
@@ -6,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct DocsDate {
     pub dni: String,
     pub doc: i32,
+    pub nombre: Option<String>,
     pub id: i32,
     pub fecha: Option<sqlx::types::chrono::NaiveDate>,
     pub asunto: Option<String>,
@@ -19,6 +22,7 @@ pub struct DocsDate {
 pub struct DocsRange {
     pub dni: String,
     pub doc: i32,
+    pub nombre: Option<String>,
     pub id: i32,
     pub inicio: Option<sqlx::types::chrono::NaiveDate>,
     pub fin: Option<sqlx::types::chrono::NaiveDate>,
