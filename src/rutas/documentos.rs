@@ -8,15 +8,12 @@ use serde_json::Value;
 
 use crate::{
     middleware::{self, key::KEY, sa::ResponseBody},
-    modelos::docs::{DocId, DocSql, DocsDate, DocsRange, Reloj},
+    modelos::docs::{DocId, DocSql, DocSs, Docs, DocsRange, Reloj},
     AppState,
 };
 
 #[post("/", wrap = "middleware::sa::JWT")]
-pub async fn buscar_trabajadores(
-    data: web::Data<AppState>,
-    body: web::Json<Value>,
-) -> impl Responder {
+pub async fn buscar_docs(data: web::Data<AppState>, body: web::Json<Value>) -> impl Responder {
     if body.get("dni").is_none() || body.get("mes").is_none() || body.get("year").is_none() {
         return Err(actix_web::error::ErrorUnauthorized(serde_json::json!(
             ResponseBody {
@@ -38,74 +35,82 @@ pub async fn buscar_trabajadores(
         )));
     }
 
-    let docs = sqlx::query_as!(
-        DocsDate,
+    let ranges = sqlx::query_as!(
+        Docs,
         r#"SELECT
         d.dni,
-        d.doc as doc,
-       CAST(AES_DECRYPT(dc.nombre, ?) as CHAR) nombre,
-        d.id,
+        d.doc AS doc,
+        d.id ,
+        CAST( AES_DECRYPT( dc.nombre, ? ) AS CHAR ) nombre,
         d.fecha,
-        CAST(AES_DECRYPT(d.asunto, ?) as CHAR) asunto,
-        CAST(AES_DECRYPT(d.descripcion, ?) as CHAR) descripcion,
-        CAST(AES_DECRYPT(d.referencia, ?) as CHAR) referencia
-      FROM
-        detalledoc d inner join documentos dc on d.doc = dc.docid where
-                d.dni = ? 
-                AND MONTH ( d.fecha ) = ? 
-                AND YEAR ( d.fecha ) = ? 
-                AND d.active = 'Y'
+        CAST( AES_DECRYPT( d.asunto, ? ) AS CHAR ) asunto,
+        CAST( AES_DECRYPT( d.descripcion, ? ) AS CHAR ) descripcion,
+        CAST( AES_DECRYPT( d.referencia, ? ) AS CHAR ) referencia,
+        d.inicio,
+        d.fin
+    FROM
+        detalledoc d
+        INNER JOIN documentos dc ON d.doc = dc.docid 
+    WHERE
+        ( d.dni = ? and d.active = 'Y'
+         ) 
+        AND (
+            ( MONTH ( d.fecha ) = ? AND YEAR ( d.fecha ) = ? ) 
+        OR ( d.fin >= ? and MONTH ( d.inicio ) <= ? AND YEAR ( d.fin ) = ?  ) 
+        )
         "#,
         KEY,
         KEY,
         KEY,
         KEY,
         body.get("dni").unwrap().as_str(),
-        body.get("mes").unwrap(),
-        body.get("year").unwrap()
-    )
-    .fetch_all(&data.db)
-    .await
-    .unwrap();
-
-    let ranges = sqlx::query_as!(
-        DocsRange,
-        r#"SELECT
-            d.dni,
-            d.doc,
-            CAST(AES_DECRYPT(dc.nombre, ?) as CHAR) nombre,
-            d.id,
-            d.inicio,
-            d.fin,
-            CAST( AES_DECRYPT( d.asunto,?) AS CHAR ) asunto,
-            CAST( AES_DECRYPT( d.descripcion,?) AS CHAR ) descripcion,
-            CAST( AES_DECRYPT( d.referencia,?) AS CHAR ) referencia 
-        FROM
-            detalledoc d inner join documentos dc on d.doc = dc.docid
-        WHERE
-            d.fin >= ? 
-            AND YEAR ( d.fin ) = ? 
-            AND d.dni = ? 
-            AND d.active = 'Y'
-        "#,
-        KEY,
-        KEY,
-        KEY,
-        KEY,
+        body.get("mes").unwrap().as_i64(),
+        body.get("year").unwrap(),
         format!(
             "{}-{}-01",
             body.get("year").unwrap(),
             body.get("mes").unwrap()
         ),
+        body.get("mes").unwrap().as_i64(),
         body.get("year").unwrap(),
-        body.get("dni").unwrap().as_str(),
     )
     .fetch_all(&data.db)
     .await
     .unwrap();
+
+    let mut documentos: Vec<DocSs> = Vec::new();
+    let mut rang: Vec<DocsRange> = Vec::new();
+
+    for x in ranges.iter() {
+        if x.fecha.is_none() {
+            rang.push(DocsRange {
+                dni: x.dni.clone(),
+                doc: x.doc,
+                nombre: x.nombre.clone(),
+                id: x.id,
+                inicio: x.inicio,
+                fin: x.fin,
+                asunto: x.asunto.clone(),
+                descripcion: x.descripcion.clone(),
+                referencia: x.referencia.clone(),
+            })
+        } else {
+            documentos.push(DocSs {
+                dni: x.dni.clone(),
+                doc: x.doc,
+                nombre: x.nombre.clone(),
+                id: x.id,
+                fecha: x.fecha,
+                asunto: x.asunto.clone(),
+                descripcion: x.descripcion.clone(),
+                referencia: x.referencia.clone(),
+            })
+        }
+    }
+
     let asistencia = sqlx::query_as!(
         Reloj,
-        "select dni,CAST(entrada as time) entrada,CAST(entrada2 as time) entrada2,CAST(salida as time) salida,CAST(tardanza as time) tardanza,fecha from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
+        "select dni,CAST(entrada as time) entrada,CAST(entrada2 as time) entrada2,CAST(salida as time) salida,fecha from registros_hora WHERE dni = ? and MONTH(fecha) = ? and year(fecha) = ?",
         body.get("dni").unwrap().as_str(),
         body.get("mes").unwrap(),
         body.get("year").unwrap(),
@@ -118,8 +123,8 @@ pub async fn buscar_trabajadores(
         "results": ranges.len(),
         "documentos": {
             "registros":asistencia,
-            "doc":docs,
-            "ranges":ranges
+            "doc":documentos,
+            "ranges":rang
         }
     });
 
@@ -490,7 +495,7 @@ pub async fn anular_doc(data: web::Data<AppState>, body: web::Json<Value>) -> im
 
 pub fn config(conf: &mut web::ServiceConfig) {
     let scope = web::scope("/doc")
-        .service(buscar_trabajadores)
+        .service(buscar_docs)
         .service(add_detalle)
         .service(buscar_doc)
         .service(delete_doc)

@@ -8,6 +8,7 @@ pub struct Usuario {
     pub nickname: Option<String>,
     pub nombre: Option<String>,
     pub password: Option<String>,
+    pub lvl: Option<i32>,
     pub created_at: sqlx::types::chrono::DateTime<Local>,
 }
 
