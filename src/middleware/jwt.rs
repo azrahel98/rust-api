@@ -10,7 +10,7 @@ pub struct Claims {
 }
 
 pub fn generate_token(user_id: i32, level: i32, nombre: String) -> String {
-    let secret_key = "*Asdf-Xasdfadf2e";
+    let secret_key = "*Asdf-Xasdfadf2eee";
     let encoding_key = EncodingKey::from_secret(secret_key.as_bytes());
 
     let claims = Claims {

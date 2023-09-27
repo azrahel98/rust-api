@@ -53,7 +53,7 @@ where
 
         match req.get("token") {
             Some(tokn) => {
-                let decode_ke = DecodingKey::from_secret("*Asdf-Xasdfadf2e".as_bytes());
+                let decode_ke = DecodingKey::from_secret("*Asdf-Xasdfadf2eee".as_bytes());
 
                 let token = tokn.to_str().unwrap();
                 match decode::<Claims>(&token, &decode_ke, &Validation::default()) {

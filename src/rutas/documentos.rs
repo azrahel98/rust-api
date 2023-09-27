@@ -504,15 +504,3 @@ pub fn config(conf: &mut web::ServiceConfig) {
 
     conf.service(scope);
 }
-
-// let usuario = sqlx::query_as!(
-//     Usuario,
-//     "select id,CAST(AES_DECRYPT(nickname,?) as CHAR) nickname,CAST(AES_DECRYPT(password,?) AS CHAR) password,CAST(AES_DECRYPT(nombre,?) AS CHAR) nombre, created_at from usuario where CAST(AES_DECRYPT(nickname,?) as CHAR) = ?",
-//     KEY,
-//     KEY,
-//     KEY,
-//     KEY,
-//     body.get("nickname").unwrap().as_str()
-// )
-// .fetch_one(&data.db)
-// .await;

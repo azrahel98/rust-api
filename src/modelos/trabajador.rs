@@ -20,6 +20,7 @@ pub struct TrabajadorInfo {
 #[allow(non_snake_case)]
 // view
 pub struct ContratosInfo {
+    pub id: i64,
     pub dni: String,
     pub activo: sqlx::types::JsonValue,
     pub numero: Option<String>,
@@ -52,4 +53,25 @@ pub struct TrabajadorBasic {
     pub nombre: String,
     pub area: String,
     pub cargo: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[allow(non_snake_case)]
+// view
+pub struct CargoAreaSearch {
+    pub id: i32,
+    pub nombre: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResNuevoContrato {
+    pub dni: String,
+    pub contrato: String,
+    pub ingreso: sqlx::types::chrono::NaiveDate,
+    pub convocatoria: Option<String>,
+    pub area: i32,
+    pub cargo: i32,
+    pub regimen: i32,
+    pub sueldo: i32,
+    pub funciones: Option<Vec<String>>,
 }

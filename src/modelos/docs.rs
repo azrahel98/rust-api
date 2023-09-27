@@ -81,3 +81,17 @@ pub struct DocSql {
 pub struct DocId {
     pub docid: Option<i32>,
 }
+
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[allow(non_snake_case)]
+pub struct DocAdenda {
+    pub dni: String,
+    pub nombre: Option<String>,
+    pub direccion: Option<String>,
+    pub ruc: Option<String>,
+    pub numero: Option<String>,
+    pub ingreso: Option<sqlx::types::chrono::NaiveDate>,
+    pub area: String,
+    pub cargo: String,
+    pub regimen: String,
+}
